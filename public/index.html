@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simply</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js"></script>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <canvas id="dot-grid"></canvas>
+    <nav class="top-nav">
+        <div class="nav-container">
+            <button id="home-btn" title="Home"><i class="ti ti-home"></i></button>
+            <input type="text" id="top-url-input" value="simply://home" spellcheck="false">
+            <button id="bookmark-btn" title="Bookmark"><i class="ti ti-star"></i></button>
+        </div>
+        <button id="nav-toggle" title="Toggle Navigation"><i class="ti ti-chevron-up"></i></button>
+    </nav>
+    
+    <div class="bottom-controls">
+        <button id="history-toggle" title="History"><i class="ti ti-history"></i></button>
+        <button id="bookmarks-toggle" title="Bookmarks"><i class="ti ti-bookmarks"></i></button>
+        <button id="settings-toggle" title="Settings"><i class="ti ti-settings"></i></button>
+    </div>
+    
+    <div id="history-overlay" class="hidden overlay">
+        <div class="overlay-content">
+            <h2>Search History</h2>
+            <div id="history-list"></div>
+            <button class="close-btn" data-overlay="history-overlay">Close</button>
+        </div>
+    </div>
+
+    <div id="bookmarks-overlay" class="hidden overlay">
+        <div class="overlay-content">
+            <h2>Bookmarks</h2>
+            <div id="bookmarks-list"></div>
+            <button class="close-btn" data-overlay="bookmarks-overlay">Close</button>
+        </div>
+    </div>
+
+
+    <div id="settings-overlay" class="hidden overlay">
+        <div class="overlay-content">
+            <h2>Settings</h2>
+            <div class="setting-item">
+                <label>Search Engine</label>
+                <div class="search-engines">
+                    <div class="engine-option active" data-engine="google">
+                        <img src="google.ico" alt="Google">
+                        <span>Google</span>
+                    </div>
+                    <div class="engine-option" data-engine="duckduckgo">
+                        <img src="ddg.png" alt="DuckDuckGo">
+                        <span>DuckDuckGo</span>
+                    </div>
+                </div>
+            </div>
+            <button class="close-btn" data-overlay="settings-overlay">Close</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1>Simply.</h1>
+        <form id="proxy-form">
+            <input type="text" id="url-input" placeholder="Search the web freely..." autocomplete="off">
+            <button type="submit"><i class="ti ti-arrow-right"></i></button>
+        </form>
+        <div id="error-msg" style="color: #ff5252;"></div>
+    </div>
+</body>
+</html>
