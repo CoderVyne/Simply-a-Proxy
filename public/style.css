@@ -176,7 +176,7 @@ body {
     z-index: 200;
 }
 
-.bottom-controls button {
+.bottom-controls button, .bottom-controls a {
     background: none;
     border: none;
     color: #fff;
@@ -187,9 +187,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-decoration: none;
 }
 
-.bottom-controls button:hover {
+.bottom-controls button:hover, .bottom-controls a:hover {
     transform: scale(1.2);
     opacity: 1;
 }
@@ -735,6 +736,8 @@ input:checked + .slider:before { transform: translateX(20px); }
 body.theme-slate { --bg-color: #1a1a1e; }
 body.theme-deepsea { --bg-color: #050b18; }
 
+
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -861,13 +864,9 @@ button:hover {
 }
 
 /* Iframe styling */
-#sj-frame {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+#proxy-frame {
+    width: 100%;
+    height: 100%;
     border: none;
-    z-index: 10000;
-    background: #fff;
+    background: transparent;
 }

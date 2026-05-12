@@ -296,7 +296,13 @@ async function handleProxy(urlValue) {
             history.push(urlValue);
             if (history.length > 50) history.shift();
             localStorage.setItem("simplyHistory", JSON.stringify(history));
-        }
+    }
+
+    // Auto-Dark injection
+    if (isDarkForced) {
+        document.body.classList.add('force-dark');
+    }
+    }
 
         let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
         
@@ -415,6 +421,14 @@ document.querySelectorAll('[data-overlay]').forEach(btn => {
 });
 
 window.addEventListener('load', () => {
+    updateStatus();
+    
+    // Auto-Cloak on startup
+    if (isCloaked && window.top === window.self && !window.location.hash) {
+        console.log("Auto-Cloaking initiated...");
+        handleProxy("simply://home");
+    }
+
     if (window.location.hash) {
         handleProxy(window.location.hash.substring(1));
     }

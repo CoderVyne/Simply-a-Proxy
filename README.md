@@ -39,4 +39,4 @@ The easiest way to host Simply is on **Render**:
 
 ---
 
-*Simply. Browsing, evolved.*
+*Simply. Browsing, evolved. [TearWorkshop](https://github.com/TearWorkshop/Simply-a-Proxy)*
