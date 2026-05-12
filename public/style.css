@@ -825,25 +825,30 @@ button {
 #status-badge {
     position: fixed;
     top: 20px;
-    right: 30px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 8px 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px 20px;
     border-radius: 100px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 0.7rem;
+    gap: 15px;
+    font-size: 0.75rem;
     color: #fff;
-    opacity: 0.6;
-    z-index: 1500;
+    opacity: 0.7;
+    z-index: 2000;
     font-family: 'Unbounded', sans-serif;
     letter-spacing: 1px;
-    transition: opacity 0.3s;
+    transition: all 0.3s;
 }
 
-#status-badge:hover { opacity: 1; }
+#status-badge:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(-50%) scale(1.05);
+}
 .badge-sep { opacity: 0.2; }
 #battery-icon { font-size: 14px; }
 

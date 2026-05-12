@@ -165,7 +165,7 @@ navToggle.addEventListener("click", () => {
 
 bookmarkBtn.addEventListener("click", () => {
     const url = topInput.value;
-    if (url && url !== "simply://home") {
+    if (url && url !== "simply:home") {
         const index = bookmarks.indexOf(url);
         if (index === -1) {
             bookmarks.push(url);
@@ -206,8 +206,8 @@ engineOptions.forEach(opt => {
 homeBtn.addEventListener("click", () => {
     const frame = document.getElementById("sj-frame");
     if (frame) frame.remove();
-    topInput.value = "simply://home";
-    updateStarIcon("simply://home");
+    topInput.value = "simply:home";
+    updateStarIcon("simply:home");
     const btn = form.querySelector('button');
     btn.innerHTML = '<i class="ti ti-arrow-right"></i>';
     btn.disabled = false;
@@ -256,7 +256,7 @@ document.querySelectorAll('.dial-item').forEach(item => {
 
 async function handleProxy(urlValue) {
     if (!urlValue) return;
-    if (urlValue === "simply://home" && !isCloaked) return;
+    if (urlValue === "simply:home" && !isCloaked) return;
 
     if (isCloaked && window.top === window.self) {
         const win = window.open('about:blank', '_blank');
@@ -400,7 +400,7 @@ if (canvas) {
 window.addEventListener('load', () => {
     updateStatus();
     if (isCloaked && window.top === window.self && !window.location.hash) {
-        handleProxy("simply://home");
+        handleProxy("simply:home");
     }
     if (window.location.hash) {
         handleProxy(window.location.hash.substring(1));
