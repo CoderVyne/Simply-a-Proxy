@@ -1,10 +1,64 @@
 "use strict";
 
-async function registerSW() {
-    if (!navigator.serviceWorker) {
-        throw new Error("Your browser doesn't support service workers.");
+// Points animation (Moved to top to ensure it starts immediately)
+const canvas = document.getElementById("dot-grid");
+const ctx = canvas.getContext("2d");
+let points = [];
+const mouse = { x: -100, y: -100 };
+
+function initPoints() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    points = [];
+    const spacing = 30;
+    for (let x = 0; x < canvas.width; x += spacing) {
+        for (let y = 0; y < canvas.height; y += spacing) {
+            points.push({ x, y, originX: x, originY: y });
+        }
     }
-    await navigator.serviceWorker.register("/sw.js");
+}
+
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    points.forEach(p => {
+        const dx = mouse.x - p.originX;
+        const dy = mouse.y - p.originY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 150;
+
+        if (dist < maxDist) {
+            const force = (maxDist - dist) / maxDist;
+            p.x = p.originX - dx * force * 0.5;
+            p.y = p.originY - dy * force * 0.5;
+        } else {
+            p.x += (p.originX - p.x) * 0.1;
+            p.y += (p.originY - p.y) * 0.1;
+        }
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    requestAnimationFrame(animate);
+}
+
+window.addEventListener("mousemove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
+
+window.addEventListener("resize", initPoints);
+initPoints();
+animate();
+
+async function registerSW() {
+    try {
+        if (!navigator.serviceWorker) return;
+        await navigator.serviceWorker.register("/sw.js");
+    } catch (e) {
+        console.error("SW failed:", e);
+    }
 }
 
 function search(input, template) {
@@ -38,8 +92,6 @@ const bookmarkBtn = document.getElementById("bookmark-btn");
 const settingsToggle = document.getElementById("settings-toggle");
 const historyToggle = document.getElementById("history-toggle");
 const bookmarksToggle = document.getElementById("bookmarks-toggle");
-const navToggle = document.getElementById("nav-toggle");
-const topNav = document.querySelector(".top-nav");
 const settingsOverlay = document.getElementById("settings-overlay");
 const historyOverlay = document.getElementById("history-overlay");
 const bookmarksOverlay = document.getElementById("bookmarks-overlay");
@@ -276,10 +328,9 @@ document.getElementById('add-tab-btn').onclick = () => addTab();
 // Panic Key
 window.addEventListener('keydown', (e) => {
     if (e.key === "Escape") {
-        switchTab(tabs[0].id);
-        const homeView = document.getElementById('home-view');
-        homeView.classList.remove('hidden');
-        document.getElementById('proxy-container').classList.add('hidden');
+        const homeTab = tabs.find(t => t.url === "simply://home");
+        if (homeTab) switchTab(homeTab.id);
+        else addTab("simply://home");
     }
 });
 
@@ -315,64 +366,12 @@ bookmarkBtn.addEventListener("click", () => {
     }
 });
 
-// Points animation
-const canvas = document.getElementById("dot-grid");
-const ctx = canvas.getContext("2d");
-let points = [];
-const mouse = { x: -100, y: -100 };
-
-function initPoints() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    points = [];
-    const spacing = 30;
-    for (let x = 0; x < canvas.width; x += spacing) {
-        for (let y = 0; y < canvas.height; y += spacing) {
-            points.push({ x, y, originX: x, originY: y });
-        }
-    }
-}
-
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    points.forEach(p => {
-        const dx = mouse.x - p.originX;
-        const dy = mouse.y - p.originY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 150;
-
-        if (dist < maxDist) {
-            const force = (maxDist - dist) / maxDist;
-            p.x = p.originX - dx * force * 0.5;
-            p.y = p.originY - dy * force * 0.5;
-        } else {
-            p.x += (p.originX - p.x) * 0.1;
-            p.y += (p.originY - p.y) * 0.1;
-        }
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    requestAnimationFrame(animate);
-}
-
-window.addEventListener("mousemove", (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-});
-
-window.addEventListener("resize", initPoints);
-
 // Check URL Params for cloaking
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has('url')) {
     handleProxy(decodeURIComponent(urlParams.get('url')));
 }
 
-initPoints();
-animate();
 renderTabs();
 updateStarIcon("simply://home");
 registerSW();
