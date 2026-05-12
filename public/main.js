@@ -4,7 +4,7 @@ async function registerSW() {
     if (!navigator.serviceWorker) {
         throw new Error("Your browser doesn't support service workers.");
     }
-    await navigator.serviceWorker.register("./sw.js");
+    await navigator.serviceWorker.register("/sw.js");
 }
 
 function search(input, template) {
@@ -21,7 +21,6 @@ function search(input, template) {
 }
 
 const { ScramjetController } = $scramjetLoadController();
-
 const scramjet = new ScramjetController({
     files: {
         wasm: "/scram/scramjet.wasm.wasm",
@@ -29,16 +28,11 @@ const scramjet = new ScramjetController({
         sync: "/scram/scramjet.sync.js",
     },
 });
-
-console.log("Initializing Scramjet...");
 scramjet.init();
 
-console.log("Connecting to BareMux...");
-const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
 const form = document.getElementById("proxy-form");
 const input = document.getElementById("url-input");
 const topInput = document.getElementById("top-url-input");
-const error = document.getElementById("error-msg");
 const homeBtn = document.getElementById("home-btn");
 const bookmarkBtn = document.getElementById("bookmark-btn");
 const settingsToggle = document.getElementById("settings-toggle");
@@ -50,18 +44,31 @@ const settingsOverlay = document.getElementById("settings-overlay");
 const historyOverlay = document.getElementById("history-overlay");
 const bookmarksOverlay = document.getElementById("bookmarks-overlay");
 const closeButtons = document.querySelectorAll(".close-btn");
-const engineOptions = document.querySelectorAll(".engine-option");
 
-let currentSearchEngine = localStorage.getItem("searchEngine") || "https://www.google.com/search?q=%s";
-
-// Persistence logic
+// State Management
+let currentSearchEngine = localStorage.getItem("simplySearchEngine") || "https://duckduckgo.com/?q=%s";
+let cloakEnabled = localStorage.getItem("simplyCloak") === "true";
+let currentTheme = localStorage.getItem("simplyTheme") || "midnight";
 let history = JSON.parse(localStorage.getItem("simplyHistory") || "[]");
 let bookmarks = JSON.parse(localStorage.getItem("simplyBookmarks") || "[]");
 
+let tabs = [{ id: Date.now(), url: "simply://home", active: true }];
+let activeTabId = tabs[0].id;
+
+// Initialize Theme
+document.body.className = `theme-${currentTheme}`;
+document.querySelectorAll('.theme-option').forEach(opt => {
+    if (opt.dataset.theme === currentTheme) opt.classList.add('active');
+    else opt.classList.remove('active');
+});
+
+// Initialize Settings Toggles
+document.getElementById('cloak-toggle').checked = cloakEnabled;
+
 function updateHistoryList() {
     const list = document.getElementById("history-list");
-    list.innerHTML = history.length ? "" : "<p style='opacity:0.5'>No history yet.</p>";
-    history.slice().reverse().forEach((item, index) => {
+    list.innerHTML = history.length ? "" : "<p style='opacity:0.5; padding: 20px;'>No history yet.</p>";
+    history.slice().reverse().forEach((item) => {
         const div = document.createElement("div");
         div.className = "list-item";
         div.innerHTML = `<span>${item}</span><i class="ti ti-chevron-right"></i>`;
@@ -75,7 +82,7 @@ function updateHistoryList() {
 
 function updateBookmarksList() {
     const list = document.getElementById("bookmarks-list");
-    list.innerHTML = bookmarks.length ? "" : "<p style='opacity:0.5'>No bookmarks yet.</p>";
+    list.innerHTML = bookmarks.length ? "" : "<p style='opacity:0.5; padding: 20px;'>No bookmarks yet.</p>";
     bookmarks.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "list-item";
@@ -104,16 +111,141 @@ function updateStarIcon(url) {
     }
 }
 
-// Toggles
+// Tab Management
+function renderTabs() {
+    const container = document.getElementById('tabs-container');
+    const bar = document.getElementById('tabs-bar');
+    container.innerHTML = '';
+    
+    if (tabs.length > 1 || tabs[0].url !== "simply://home") {
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+
+    tabs.forEach(tab => {
+        const div = document.createElement('div');
+        div.className = `tab ${tab.active ? 'active' : ''}`;
+        const title = tab.url === "simply://home" ? "Home" : tab.url.replace(/^https?:\/\//, '').split('/')[0];
+        div.innerHTML = `
+            <i class="ti ti-world"></i>
+            <span>${title}</span>
+            <i class="ti ti-x" onclick="closeTab(event, ${tab.id})"></i>
+        `;
+        div.onclick = () => switchTab(tab.id);
+        container.appendChild(div);
+    });
+}
+
+function switchTab(id) {
+    tabs.forEach(t => t.active = (t.id === id));
+    activeTabId = id;
+    const activeTab = tabs.find(t => t.id === id);
+    
+    const container = document.getElementById('proxy-container');
+    const homeView = document.getElementById('home-view');
+    const topInput = document.getElementById('top-url-input');
+
+    // Hide all frames
+    document.querySelectorAll('.proxy-frame').forEach(f => f.classList.add('hidden'));
+    
+    if (activeTab.url === "simply://home") {
+        homeView.classList.remove('hidden');
+        container.classList.add('hidden');
+        topInput.value = "simply://home";
+    } else {
+        homeView.classList.add('hidden');
+        container.classList.remove('hidden');
+        const frame = document.getElementById(`frame-${id}`);
+        if (frame) frame.classList.remove('hidden');
+        topInput.value = activeTab.url;
+    }
+    renderTabs();
+    updateStarIcon(activeTab.url);
+}
+
+function closeTab(e, id) {
+    e.stopPropagation();
+    if (tabs.length === 1) {
+        tabs[0].url = "simply://home";
+        const frame = document.getElementById(`frame-${id}`);
+        if (frame) frame.remove();
+        switchTab(id);
+        return;
+    }
+    const index = tabs.findIndex(t => t.id === id);
+    const wasActive = tabs[index].active;
+    tabs.splice(index, 1);
+    const frame = document.getElementById(`frame-${id}`);
+    if (frame) frame.remove();
+    
+    if (wasActive) switchTab(tabs[Math.max(0, index - 1)].id);
+    else renderTabs();
+}
+
+function addTab(url = "simply://home") {
+    tabs.forEach(t => t.active = false);
+    const newId = Date.now();
+    tabs.push({ id: newId, url: url, active: true });
+    activeTabId = newId;
+    
+    if (url !== "simply://home") {
+        createFrame(newId, url);
+    }
+    switchTab(newId);
+}
+
+function createFrame(id, url) {
+    const container = document.getElementById('proxy-container');
+    const iframe = document.createElement('iframe');
+    iframe.id = `frame-${id}`;
+    iframe.className = 'proxy-frame';
+    const searchUrl = search(url, currentSearchEngine);
+    iframe.src = __scramjet$config.prefix + scramjet.encodeUrl(searchUrl);
+    container.appendChild(iframe);
+}
+
+async function handleProxy(urlValue) {
+    const cloak = document.getElementById('cloak-toggle').checked;
+    
+    if (cloak && !window.frameElement) {
+        const win = window.open('about:blank', '_blank');
+        if (win) {
+            win.document.body.style.margin = '0';
+            win.document.body.style.height = '100vh';
+            const frame = win.document.createElement('iframe');
+            frame.style.width = '100%';
+            frame.style.height = '100%';
+            frame.style.border = 'none';
+            frame.src = window.location.origin + '?url=' + encodeURIComponent(urlValue);
+            win.document.body.appendChild(frame);
+            return;
+        }
+    }
+
+    if (!history.includes(urlValue)) {
+        history.push(urlValue);
+        localStorage.setItem("simplyHistory", JSON.stringify(history));
+    }
+
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    activeTab.url = urlValue;
+    
+    let frame = document.getElementById(`frame-${activeTabId}`);
+    if (!frame) {
+        createFrame(activeTabId, urlValue);
+    } else {
+        const searchUrl = search(urlValue, currentSearchEngine);
+        frame.src = __scramjet$config.prefix + scramjet.encodeUrl(searchUrl);
+    }
+    
+    switchTab(activeTabId);
+}
+
+// Toggles and Events
 settingsToggle.addEventListener("click", () => settingsOverlay.classList.remove("hidden"));
-historyToggle.addEventListener("click", () => {
-    updateHistoryList();
-    historyOverlay.classList.remove("hidden");
-});
-bookmarksToggle.addEventListener("click", () => {
-    updateBookmarksList();
-    bookmarksOverlay.classList.remove("hidden");
-});
+historyToggle.addEventListener("click", () => { updateHistoryList(); historyOverlay.classList.remove("hidden"); });
+bookmarksToggle.addEventListener("click", () => { updateBookmarksList(); bookmarksOverlay.classList.remove("hidden"); });
 
 closeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -121,204 +253,126 @@ closeButtons.forEach(btn => {
     });
 });
 
-navToggle.addEventListener("click", () => {
-    topNav.classList.toggle("collapsed");
-    const isCollapsed = topNav.classList.contains("collapsed");
-    navToggle.innerHTML = isCollapsed ? '<i class="ti ti-chevron-down"></i>' : '<i class="ti ti-chevron-up"></i>';
+document.getElementById('cloak-toggle').addEventListener('change', (e) => {
+    localStorage.setItem("simplyCloak", e.target.checked);
 });
 
-bookmarkBtn.addEventListener("click", () => {
-    const url = topInput.value;
-    if (url && url !== "simply://home") {
-        const index = bookmarks.indexOf(url);
-        if (index === -1) {
-            bookmarks.push(url);
-            bookmarkBtn.innerHTML = '<i class="ti ti-star-filled"></i>';
-            bookmarkBtn.style.color = "#FFD700"; // Gold color
-        } else {
-            bookmarks.splice(index, 1);
-            bookmarkBtn.innerHTML = '<i class="ti ti-star"></i>';
-            bookmarkBtn.style.color = "#fff";
-        }
-        localStorage.setItem("simplyBookmarks", JSON.stringify(bookmarks));
-        updateBookmarksList();
-    }
-});
-
-// Apply saved setting on load
-engineOptions.forEach(opt => {
-    if (
-        (opt.dataset.engine === "google" && currentSearchEngine.includes("google")) ||
-        (opt.dataset.engine === "duckduckgo" && currentSearchEngine.includes("duckduckgo"))
-    ) {
-        engineOptions.forEach(o => o.classList.remove("active"));
-        opt.classList.add("active");
-    }
-
-    opt.addEventListener("click", () => {
-        engineOptions.forEach(o => o.classList.remove("active"));
-        opt.classList.add("active");
-        const engine = opt.dataset.engine;
-        if (engine === "google") currentSearchEngine = "https://www.google.com/search?q=%s";
-        else if (engine === "duckduckgo") currentSearchEngine = "https://duckduckgo.com/?q=%s";
-        
-        localStorage.setItem("searchEngine", currentSearchEngine);
+document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        const theme = opt.dataset.theme;
+        document.body.className = `theme-${theme}`;
+        document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        localStorage.setItem("simplyTheme", theme);
     });
 });
 
-// Home Logic
-homeBtn.addEventListener("click", () => {
-    const frame = document.getElementById("sj-frame");
-    if (frame) frame.remove();
-    topInput.value = "simply://home";
-    updateStarIcon("simply://home");
-    const btn = form.querySelector('button');
-    btn.innerHTML = '<i class="ti ti-arrow-right"></i>';
-    btn.disabled = false;
-    
-    // Close all overlays
-    document.querySelectorAll('.overlay').forEach(ov => ov.classList.add('hidden'));
-    document.getElementById('cinema-details-panel').classList.remove('open');
+document.querySelectorAll('.dial-item').forEach(item => {
+    item.addEventListener('click', () => handleProxy(item.dataset.url));
 });
 
-async function handleProxy(urlValue) {
-    if (!urlValue || urlValue === "simply://home") return;
+document.getElementById('add-tab-btn').onclick = () => addTab();
 
-    const btn = form.querySelector('button');
-    const originalBtnHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i>';
-    btn.disabled = true;
-
-    console.log("Starting proxy for value:", urlValue);
-
-    try {
-        console.log("Registering Service Worker...");
-        await registerSW();
-        
-        const url = search(urlValue, currentSearchEngine);
-        console.log("Navigating to:", url);
-        topInput.value = url;
-        updateStarIcon(url);
-
-        // Save to history
-        if (!history.includes(urlValue)) {
-            history.push(urlValue);
-            if (history.length > 50) history.shift();
-            localStorage.setItem("simplyHistory", JSON.stringify(history));
-        }
-
-        let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-        
-        console.log("Setting transport to libcurl with wispUrl:", wispUrl);
-        if ((await connection.getTransport()) !== "/libcurl/index.mjs") {
-            await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
-        }
-
-        console.log("Creating Scramjet frame...");
-        const existingFrame = document.getElementById("sj-frame");
-        if (existingFrame) existingFrame.remove();
-
-        const frame = scramjet.createFrame();
-        frame.frame.id = "sj-frame";
-        
-        document.body.appendChild(frame.frame);
-        console.log("Loading URL in frame...");
-        frame.go(url);
-    } catch (err) {
-        console.error("Proxy error:", err);
-        error.textContent = "Error: " + err.message;
-        btn.innerHTML = originalBtnHTML;
-        btn.disabled = false;
+// Panic Key
+window.addEventListener('keydown', (e) => {
+    if (e.key === "Escape") {
+        switchTab(tabs[0].id);
+        const homeView = document.getElementById('home-view');
+        homeView.classList.remove('hidden');
+        document.getElementById('proxy-container').classList.add('hidden');
     }
-}
+});
 
-form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+// Search Engine Switcher
+document.querySelectorAll('.engine-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        const engine = opt.dataset.engine === 'google' ? "https://www.google.com/search?q=%s" : "https://duckduckgo.com/?q=%s";
+        currentSearchEngine = engine;
+        localStorage.setItem("simplySearchEngine", engine);
+        document.querySelectorAll('.engine-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+    });
+});
+
+form.addEventListener("submit", (e) => {
+    e.preventDefault();
     handleProxy(input.value);
 });
 
-topInput.addEventListener("keydown", async (event) => {
-    if (event.key === "Enter") {
-        handleProxy(topInput.value);
+topInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleProxy(topInput.value);
+});
+
+homeBtn.addEventListener("click", () => switchTab(tabs[0].id));
+bookmarkBtn.addEventListener("click", () => {
+    const url = tabs.find(t => t.id === activeTabId).url;
+    if (url && url !== "simply://home") {
+        const index = bookmarks.indexOf(url);
+        if (index === -1) bookmarks.push(url);
+        else bookmarks.splice(index, 1);
+        localStorage.setItem("simplyBookmarks", JSON.stringify(bookmarks));
+        updateStarIcon(url);
     }
 });
 
-// Dot Grid Background Logic
-const canvas = document.getElementById('dot-grid');
-const ctx = canvas.getContext('2d');
+// Points animation
+const canvas = document.getElementById("dot-grid");
+const ctx = canvas.getContext("2d");
 let points = [];
-const spacing = 40;
-let mouse = { x: -1000, y: -1000 };
+const mouse = { x: -100, y: -100 };
 
 function initPoints() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     points = [];
-    for (let x = 0; x < canvas.width + spacing; x += spacing) {
-        for (let y = 0; y < canvas.height + spacing; y += spacing) {
-            points.push({ 
-                x, y, 
-                originX: x, originY: y,
-                phaseX: Math.random() * Math.PI * 2,
-                phaseY: Math.random() * Math.PI * 2,
-                speedX: 0.0005 + Math.random() * 0.001,
-                speedY: 0.0005 + Math.random() * 0.001
-            });
+    const spacing = 30;
+    for (let x = 0; x < canvas.width; x += spacing) {
+        for (let y = 0; y < canvas.height; y += spacing) {
+            points.push({ x, y, originX: x, originY: y });
         }
     }
 }
 
-window.addEventListener('resize', initPoints);
-window.addEventListener('mousemove', (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-});
-
-function animate(time = 0) {
+function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-
     points.forEach(p => {
-        // Individualized idle movement
-        const idleX = Math.sin(time * p.speedX + p.phaseX) * 5;
-        const idleY = Math.cos(time * p.speedY + p.phaseY) * 5;
-        
-        const currentOriginX = p.originX + idleX;
-        const currentOriginY = p.originY + idleY;
-
-        const dx = mouse.x - currentOriginX;
-        const dy = mouse.y - currentOriginY;
+        const dx = mouse.x - p.originX;
+        const dy = mouse.y - p.originY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 200;
+        const maxDist = 150;
 
         if (dist < maxDist) {
             const force = (maxDist - dist) / maxDist;
-            p.x = currentOriginX + dx * force * 0.6;
-            p.y = currentOriginY + dy * force * 0.6;
+            p.x = p.originX - dx * force * 0.5;
+            p.y = p.originY - dy * force * 0.5;
         } else {
-            p.x += (currentOriginX - p.x) * 0.1;
-            p.y += (currentOriginY - p.y) * 0.1;
+            p.x += (p.originX - p.x) * 0.1;
+            p.y += (p.originY - p.y) * 0.1;
         }
 
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
         ctx.beginPath();
         ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
         ctx.fill();
     });
-
     requestAnimationFrame(animate);
 }
 
-initPoints();
-requestAnimationFrame(animate);
-
-
-// Fallback for generic close buttons
-document.querySelectorAll('[data-overlay]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const overlayId = btn.dataset.overlay;
-        if (overlayId) {
-            const overlay = document.getElementById(overlayId);
-            if (overlay) overlay.classList.add('hidden');
-        }
-    });
+window.addEventListener("mousemove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
 });
+
+window.addEventListener("resize", initPoints);
+
+// Check URL Params for cloaking
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('url')) {
+    handleProxy(decodeURIComponent(urlParams.get('url')));
+}
+
+initPoints();
+animate();
+renderTabs();
+updateStarIcon("simply://home");
+registerSW();
