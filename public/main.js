@@ -8,6 +8,8 @@ async function registerSW() {
 }
 
 function search(input, template) {
+    if (input === "simply://home" || input === "__home__") return "__home__";
+    
     try {
         return new URL(input).toString();
     } catch (err) {}
@@ -165,7 +167,7 @@ navToggle.addEventListener("click", () => {
 
 bookmarkBtn.addEventListener("click", () => {
     const url = topInput.value;
-    if (url && url !== "__home__") {
+    if (url && url !== "simply://home" && url !== "__home__") {
         const index = bookmarks.indexOf(url);
         if (index === -1) {
             bookmarks.push(url);
@@ -206,7 +208,7 @@ engineOptions.forEach(opt => {
 homeBtn.addEventListener("click", () => {
     const frame = document.getElementById("sj-frame");
     if (frame) frame.remove();
-    topInput.value = "__home__";
+    topInput.value = "simply://home";
     updateStarIcon("__home__");
     const btn = form.querySelector('button');
     btn.innerHTML = '<i class="ti ti-arrow-right"></i>';
@@ -256,7 +258,12 @@ document.querySelectorAll('.dial-item').forEach(item => {
 
 async function handleProxy(urlValue) {
     if (!urlValue) return;
-    if (urlValue === "__home__" && !isCloaked) return;
+    
+    // Internal mapping to avoid protocol errors
+    let internalValue = urlValue;
+    if (urlValue === "simply://home") internalValue = "__home__";
+
+    if (internalValue === "__home__" && !isCloaked) return;
 
     if (isCloaked && window.top === window.self) {
         const win = window.open('about:blank', '_blank');
@@ -264,8 +271,9 @@ async function handleProxy(urlValue) {
             const doc = win.document;
             doc.title = 'Classes';
             const iframe = doc.createElement('iframe');
-            const targetUrl = window.location.origin + '#' + urlValue;
-            iframe.src = targetUrl;
+            // Use a safe hash for cloaking
+            const safeHash = internalValue === "__home__" ? "home" : internalValue;
+            iframe.src = window.location.origin + '#' + safeHash;
             iframe.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; border:none; margin:0; padding:0; background: #000; z-index: 5000;';
             doc.body.style.margin = '0';
             doc.body.appendChild(iframe);
@@ -284,12 +292,21 @@ async function handleProxy(urlValue) {
     try {
         await registerSW();
         
-        const url = search(urlValue, currentSearchEngine);
+        if (internalValue === "__home__") {
+            const frame = document.getElementById("sj-frame");
+            if (frame) frame.remove();
+            topInput.value = "simply://home";
+            btn.innerHTML = originalBtnHTML;
+            btn.disabled = false;
+            return;
+        }
+
+        const url = search(internalValue, currentSearchEngine);
         topInput.value = url;
         updateStarIcon(url);
 
-        if (!history.includes(urlValue)) {
-            history.push(urlValue);
+        if (!history.includes(internalValue)) {
+            history.push(internalValue);
             if (history.length > 50) history.shift();
             localStorage.setItem("simplyHistory", JSON.stringify(history));
         }
@@ -299,7 +316,6 @@ async function handleProxy(urlValue) {
         }
 
         let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
-        
         if ((await connection.getTransport()) !== "/libcurl/index.mjs") {
             await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
         }
@@ -402,7 +418,9 @@ window.addEventListener('load', () => {
     if (isCloaked && window.top === window.self && !window.location.hash) {
         handleProxy("__home__");
     }
+    
     if (window.location.hash) {
-        handleProxy(window.location.hash.substring(1));
+        const hash = window.location.hash.substring(1);
+        handleProxy(hash === "home" ? "__home__" : hash);
     }
 });
