@@ -3,7 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simply</title>
+    <title>Simply — Private Proxy Browser</title>
+    <meta name="description" content="A minimalist, high-performance proxy browser with stealth cloaking, custom themes, and built-in privacy features.">
+    <meta name="keywords" content="proxy, browser, unblock, privacy, stealth, scramjet, web proxy">
+    <meta name="author" content="Simply Team">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simply-a-proxy.onrender.com/">
+    <meta property="og:title" content="Simply — Private Proxy Browser">
+    <meta property="og:description" content="Minimalist browsing with maximum privacy. Stealth mode, custom themes, and high-speed proxying.">
+    <meta property="og:image" content="https://i.ibb.co/nN1gGm2j/favicon-1.png">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="/style.css">
@@ -13,6 +23,13 @@
 </head>
 <body>
     <canvas id="dot-grid"></canvas>
+
+    <div id="status-badge">
+        <span id="badge-time">00:00</span>
+        <span class="badge-sep">|</span>
+        <i class="ti ti-battery-4" id="battery-icon"></i>
+        <span id="badge-battery">100%</span>
+    </div>
     
     <nav class="top-nav">
         <div class="nav-container">
@@ -91,6 +108,13 @@
                     <span>Ad-Blocker</span>
                     <label class="switch">
                         <input type="checkbox" id="adblock-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-row">
+                    <span>Forced Dark Mode</span>
+                    <label class="switch">
+                        <input type="checkbox" id="darkmode-toggle">
                         <span class="slider"></span>
                     </label>
                 </div>

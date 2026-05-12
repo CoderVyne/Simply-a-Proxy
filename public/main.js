@@ -60,6 +60,28 @@ let bookmarks = JSON.parse(localStorage.getItem("simplyBookmarks") || "[]");
 let activeTheme = localStorage.getItem("simplyTheme") || "midnight";
 let isCloaked = localStorage.getItem("simplyCloak") === "true";
 let adBlockEnabled = localStorage.getItem("simplyAdBlock") !== "false";
+let isDarkForced = localStorage.getItem("simplyDark") === "true";
+
+function updateStatus() {
+    const timeEl = document.getElementById('badge-time');
+    const battEl = document.getElementById('badge-battery');
+    const battIcon = document.getElementById('battery-icon');
+    const now = new Date();
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (navigator.getBattery) {
+        navigator.getBattery().then(battery => {
+            const level = Math.round(battery.level * 100);
+            if (battEl) battEl.textContent = `${level}%`;
+            if (battIcon) {
+                if (battery.charging) battIcon.className = 'ti ti-battery-charging';
+                else if (level < 20) battIcon.className = 'ti ti-battery-1';
+                else battIcon.className = 'ti ti-battery-4';
+            }
+        });
+    }
+}
+setInterval(updateStatus, 1000);
+updateStatus();
 
 function applyTheme(theme) {
     document.body.className = `theme-${theme}`;
@@ -201,9 +223,12 @@ document.querySelectorAll('.theme-option').forEach(opt => {
 // Privacy toggles
 const cloakToggle = document.getElementById('cloak-toggle');
 const adblockToggle = document.getElementById('adblock-toggle');
+const darkToggle = document.getElementById('darkmode-toggle');
 
 cloakToggle.checked = isCloaked;
 adblockToggle.checked = adBlockEnabled;
+darkToggle.checked = isDarkForced;
+if (isDarkForced) document.body.classList.add('force-dark');
 
 cloakToggle.addEventListener('change', () => {
     isCloaked = cloakToggle.checked;
@@ -213,6 +238,12 @@ cloakToggle.addEventListener('change', () => {
 adblockToggle.addEventListener('change', () => {
     adBlockEnabled = adblockToggle.checked;
     localStorage.setItem("simplyAdBlock", adBlockEnabled);
+});
+
+darkToggle.addEventListener('change', () => {
+    isDarkForced = darkToggle.checked;
+    document.body.classList.toggle('force-dark', isDarkForced);
+    localStorage.setItem("simplyDark", isDarkForced);
 });
 
 // Speed Dial
@@ -231,11 +262,16 @@ async function handleProxy(urlValue) {
             const doc = win.document;
             doc.title = 'Classes';
             const iframe = doc.createElement('iframe');
-            iframe.src = window.location.origin + '#' + urlValue;
+            const targetUrl = window.location.origin + '#' + urlValue;
+            iframe.src = targetUrl;
             iframe.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; border:none; margin:0; padding:0;';
             doc.body.style.margin = '0';
             doc.body.appendChild(iframe);
+            // Navigate the current page to something safe
+            window.location.replace('https://google.com');
             return;
+        } else {
+            alert("Please allow popups for Stealth Mode to work!");
         }
     }
 
