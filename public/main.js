@@ -255,7 +255,8 @@ document.querySelectorAll('.dial-item').forEach(item => {
 });
 
 async function handleProxy(urlValue) {
-    if (!urlValue || urlValue === "simply://home") return;
+    if (!urlValue) return;
+    if (urlValue === "simply://home" && !isCloaked) return;
 
     if (isCloaked && window.top === window.self) {
         const win = window.open('about:blank', '_blank');
@@ -265,7 +266,7 @@ async function handleProxy(urlValue) {
             const iframe = doc.createElement('iframe');
             const targetUrl = window.location.origin + '#' + urlValue;
             iframe.src = targetUrl;
-            iframe.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; border:none; margin:0; padding:0;';
+            iframe.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; border:none; margin:0; padding:0; background: #000; z-index: 5000;';
             doc.body.style.margin = '0';
             doc.body.appendChild(iframe);
             window.location.replace('https://google.com');

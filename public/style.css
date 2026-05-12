@@ -864,9 +864,16 @@ button:hover {
 }
 
 /* Iframe styling */
-#proxy-frame {
-    width: 100%;
-    height: 100%;
+#proxy-frame, #sj-frame {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
     border: none;
-    background: transparent;
+    background: #000;
+    z-index: 5000;
+}
+
+#proxy-container.hidden, #sj-frame.hidden {
+    display: none !important;
 }
