@@ -15,10 +15,6 @@
     <canvas id="dot-grid"></canvas>
     
     <nav class="top-nav">
-        <div id="tabs-bar" class="hidden">
-            <div id="tabs-container"></div>
-            <button id="add-tab-btn"><i class="ti ti-plus"></i></button>
-        </div>
         <div class="nav-container">
             <button id="home-btn" title="Home"><i class="ti ti-home"></i></button>
             <input type="text" id="top-url-input" value="simply://home" spellcheck="false">
@@ -74,22 +70,29 @@
             </div>
 
             <div class="setting-item">
-                <label>Privacy & Stealth</label>
-                <div class="toggle-group">
+                <label>Theme</label>
+                <div class="theme-options">
+                    <div class="theme-option active" data-theme="midnight"><span>Midnight</span></div>
+                    <div class="theme-option" data-theme="slate"><span>Slate</span></div>
+                    <div class="theme-option" data-theme="deepsea"><span>Deep Sea</span></div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label>Privacy</label>
+                <div class="toggle-row">
                     <span>About:Blank Cloaking</span>
                     <label class="switch">
                         <input type="checkbox" id="cloak-toggle">
                         <span class="slider"></span>
                     </label>
                 </div>
-            </div>
-
-            <div class="setting-item">
-                <label>Themes</label>
-                <div class="theme-selector">
-                    <div class="theme-option active" data-theme="midnight" style="background: #050505;"></div>
-                    <div class="theme-option" data-theme="slate" style="background: #1a1a1a;"></div>
-                    <div class="theme-option" data-theme="deepsea" style="background: #0a192f;"></div>
+                <div class="toggle-row">
+                    <span>Ad-Blocker</span>
+                    <label class="switch">
+                        <input type="checkbox" id="adblock-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -101,26 +104,12 @@
             <input type="text" id="url-input" placeholder="Search the web freely..." autocomplete="off">
             <button type="submit"><i class="ti ti-arrow-right"></i></button>
         </form>
-        
         <div id="speed-dial">
-            <div class="dial-item" data-url="https://youtube.com">
-                <i class="ti ti-brand-youtube"></i>
-                <span>YouTube</span>
-            </div>
-            <div class="dial-item" data-url="https://discord.com">
-                <i class="ti ti-brand-discord"></i>
-                <span>Discord</span>
-            </div>
-            <div class="dial-item" data-url="https://github.com">
-                <i class="ti ti-brand-github"></i>
-                <span>GitHub</span>
-            </div>
-            <div class="dial-item" data-url="https://reddit.com">
-                <i class="ti ti-brand-reddit"></i>
-                <span>Reddit</span>
-            </div>
+            <div class="dial-item" data-url="https://youtube.com"><i class="ti ti-brand-youtube"></i><span>YouTube</span></div>
+            <div class="dial-item" data-url="https://discord.com"><i class="ti ti-brand-discord"></i><span>Discord</span></div>
+            <div class="dial-item" data-url="https://google.com"><i class="ti ti-brand-google"></i><span>Google</span></div>
+            <div class="dial-item" data-url="https://github.com"><i class="ti ti-brand-github"></i><span>GitHub</span></div>
         </div>
-
         <div id="error-msg"></div>
     </div>
 
