@@ -94,6 +94,7 @@ applyTheme(activeTheme);
 
 function updateHistoryList() {
     const list = document.getElementById("history-list");
+    if (!list) return;
     list.innerHTML = history.length ? "" : "<p style='opacity:0.5'>No history yet.</p>";
     history.slice().reverse().forEach((item, index) => {
         const div = document.createElement("div");
@@ -109,6 +110,7 @@ function updateHistoryList() {
 
 function updateBookmarksList() {
     const list = document.getElementById("bookmarks-list");
+    if (!list) return;
     list.innerHTML = bookmarks.length ? "" : "<p style='opacity:0.5'>No bookmarks yet.</p>";
     bookmarks.forEach((item, index) => {
         const div = document.createElement("div");
@@ -212,7 +214,6 @@ homeBtn.addEventListener("click", () => {
     
     // Close all overlays
     document.querySelectorAll('.overlay').forEach(ov => ov.classList.add('hidden'));
-    document.getElementById('cinema-details-panel').classList.remove('open');
 });
 
 // Theme switching
@@ -267,7 +268,6 @@ async function handleProxy(urlValue) {
             iframe.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; border:none; margin:0; padding:0;';
             doc.body.style.margin = '0';
             doc.body.appendChild(iframe);
-            // Navigate the current page to something safe
             window.location.replace('https://google.com');
             return;
         } else {
@@ -276,50 +276,39 @@ async function handleProxy(urlValue) {
     }
 
     const btn = form.querySelector('button');
-    const originalBtnHTML = btn.innerHTML;
+    const originalBtnHTML = '<i class="ti ti-arrow-right"></i>';
     btn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i>';
     btn.disabled = true;
 
-    console.log("Starting proxy for value:", urlValue);
-
     try {
-        console.log("Registering Service Worker...");
         await registerSW();
         
         const url = search(urlValue, currentSearchEngine);
-        console.log("Navigating to:", url);
         topInput.value = url;
         updateStarIcon(url);
 
-        // Save to history
         if (!history.includes(urlValue)) {
             history.push(urlValue);
             if (history.length > 50) history.shift();
             localStorage.setItem("simplyHistory", JSON.stringify(history));
-    }
+        }
 
-    // Auto-Dark injection
-    if (isDarkForced) {
-        document.body.classList.add('force-dark');
-    }
-    }
+        if (isDarkForced) {
+            document.body.classList.add('force-dark');
+        }
 
         let wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
         
-        console.log("Setting transport to libcurl with wispUrl:", wispUrl);
         if ((await connection.getTransport()) !== "/libcurl/index.mjs") {
             await connection.setTransport("/libcurl/index.mjs", [{ websocket: wispUrl }]);
         }
 
-        console.log("Creating Scramjet frame...");
         const existingFrame = document.getElementById("sj-frame");
         if (existingFrame) existingFrame.remove();
 
         const frame = scramjet.createFrame();
         frame.frame.id = "sj-frame";
-        
         document.body.appendChild(frame.frame);
-        console.log("Loading URL in frame...");
         frame.go(url);
     } catch (err) {
         console.error("Proxy error:", err);
@@ -342,93 +331,76 @@ topInput.addEventListener("keydown", async (event) => {
 
 // Dot Grid Background Logic
 const canvas = document.getElementById('dot-grid');
-const ctx = canvas.getContext('2d');
-let points = [];
-const spacing = 40;
-let mouse = { x: -1000, y: -1000 };
+if (canvas) {
+    const ctx = canvas.getContext('2d');
+    let points = [];
+    const spacing = 40;
+    let mouse = { x: -1000, y: -1000 };
 
-function initPoints() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    points = [];
-    for (let x = 0; x < canvas.width + spacing; x += spacing) {
-        for (let y = 0; y < canvas.height + spacing; y += spacing) {
-            points.push({ 
-                x, y, 
-                originX: x, originY: y,
-                phaseX: Math.random() * Math.PI * 2,
-                phaseY: Math.random() * Math.PI * 2,
-                speedX: 0.0005 + Math.random() * 0.001,
-                speedY: 0.0005 + Math.random() * 0.001
-            });
+    function initPoints() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        points = [];
+        for (let x = 0; x < canvas.width + spacing; x += spacing) {
+            for (let y = 0; y < canvas.height + spacing; y += spacing) {
+                points.push({ 
+                    x, y, 
+                    originX: x, originY: y,
+                    phaseX: Math.random() * Math.PI * 2,
+                    phaseY: Math.random() * Math.PI * 2,
+                    speedX: 0.0005 + Math.random() * 0.001,
+                    speedY: 0.0005 + Math.random() * 0.001
+                });
+            }
         }
     }
-}
 
-window.addEventListener('resize', initPoints);
-window.addEventListener('mousemove', (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-});
-
-function animate(time = 0) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-
-    points.forEach(p => {
-        // Individualized idle movement
-        const idleX = Math.sin(time * p.speedX + p.phaseX) * 5;
-        const idleY = Math.cos(time * p.speedY + p.phaseY) * 5;
-        
-        const currentOriginX = p.originX + idleX;
-        const currentOriginY = p.originY + idleY;
-
-        const dx = mouse.x - currentOriginX;
-        const dy = mouse.y - currentOriginY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 200;
-
-        if (dist < maxDist) {
-            const force = (maxDist - dist) / maxDist;
-            p.x = currentOriginX + dx * force * 0.6;
-            p.y = currentOriginY + dy * force * 0.6;
-        } else {
-            p.x += (currentOriginX - p.x) * 0.1;
-            p.y += (currentOriginY - p.y) * 0.1;
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
-        ctx.fill();
+    window.addEventListener('resize', initPoints);
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
     });
 
+    function animate(time = 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+
+        points.forEach(p => {
+            const idleX = Math.sin(time * p.speedX + p.phaseX) * 5;
+            const idleY = Math.cos(time * p.speedY + p.phaseY) * 5;
+            const currentOriginX = p.originX + idleX;
+            const currentOriginY = p.originY + idleY;
+            const dx = mouse.x - currentOriginX;
+            const dy = mouse.y - currentOriginY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const maxDist = 200;
+
+            if (dist < maxDist) {
+                const force = (maxDist - dist) / maxDist;
+                p.x = currentOriginX + dx * force * 0.6;
+                p.y = currentOriginY + dy * force * 0.6;
+            } else {
+                p.x += (currentOriginX - p.x) * 0.1;
+                p.y += (currentOriginY - p.y) * 0.1;
+            }
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    initPoints();
     requestAnimationFrame(animate);
 }
 
-initPoints();
-requestAnimationFrame(animate);
-
-
-// Fallback for generic close buttons
-document.querySelectorAll('[data-overlay]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const overlayId = btn.dataset.overlay;
-        if (overlayId) {
-            const overlay = document.getElementById(overlayId);
-            if (overlay) overlay.classList.add('hidden');
-        }
-    });
-});
-
 window.addEventListener('load', () => {
     updateStatus();
-    
-    // Auto-Cloak on startup
     if (isCloaked && window.top === window.self && !window.location.hash) {
-        console.log("Auto-Cloaking initiated...");
         handleProxy("simply://home");
     }
-
     if (window.location.hash) {
         handleProxy(window.location.hash.substring(1));
     }
