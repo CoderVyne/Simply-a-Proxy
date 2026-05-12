@@ -1,15 +1,15 @@
 import { createServer } from "node:http";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { hostname } from "node:os";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
-import { scramjetPath } from "@mercuryworkshop/scramjet/path";
-import { libcurlPath } from "@mercuryworkshop/libcurl-transport";
-import { baremuxPath } from "@mercuryworkshop/bare-mux/node";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const publicPath = fileURLToPath(new URL("./public/", import.meta.url));
+const publicPath = path.join(__dirname, "public");
+const scramjetPath = path.join(__dirname, "node_modules/@mercuryworkshop/scramjet/dist");
+const libcurlPath = path.join(__dirname, "node_modules/@mercuryworkshop/libcurl-transport/dist");
+const baremuxPath = path.join(__dirname, "node_modules/@mercuryworkshop/bare-mux/dist");
 
 logging.set_level(logging.NONE);
 
